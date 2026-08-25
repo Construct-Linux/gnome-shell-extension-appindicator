@@ -794,9 +794,10 @@ const MenuItemFactory = {
     },
 
     _replaceSelf(newSelf) {
-        // create our new self if needed
-        if (!newSelf)
-            newSelf = MenuItemFactory.createItem(this._dbusClient, this._dbusItem);
+        // Late signal for an item that was already replaced/removed by a
+        // previous _replaceSelf() call -> nothing left to do.
+        if (!this._parent)
+            return;
 
         // first, we need to find our old position
         let pos = -1;
@@ -806,9 +807,16 @@ const MenuItemFactory = {
                 pos = i;
         }
 
+        // Item was already detached by a concurrent layout update -> nothing
+        // to do. Throwing here does not stop the dbus client from emitting
+        // updates for this same stale reference, so every later update threw
+        // again and the exceptions kept the shell busy.
         if (pos < 0)
-            throw new Error("DBusMenu: can't replace non existing menu item");
+            return;
 
+        // create our new self if needed, only once we know where it goes
+        if (!newSelf)
+            newSelf = MenuItemFactory.createItem(this._dbusClient, this._dbusItem);
 
         // add our new self while we're still alive
         this._parent.addMenuItem(newSelf, pos);
