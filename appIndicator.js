@@ -215,8 +215,11 @@ class AppIndicatorProxy extends DBusProxy {
                         skipEqualityCheck: p.endsWith('Pixmap'),
                     });
                 } catch (e) {
-                    if (!AppIndicatorProxy.OPTIONAL_PROPERTIES.includes(p) ||
-                        !(e instanceof Gio.DBusError))
+                    // An error returned by the application's Get is already
+                    // logged at debug level by refreshProperty(); applications
+                    // that miss or fail a property do it on every update.
+                    if (!(e instanceof GLib.Error) ||
+                        !Gio.DBusError.is_remote_error(e))
                         logError(e);
                 }
             }));
