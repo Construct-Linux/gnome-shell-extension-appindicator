@@ -179,11 +179,14 @@ export class StatusNotifierWatcher {
                 const ids = [null, ...services].map(s => Util.indicatorId(s, name, path));
 
                 if (ids.every(id => !this._items.has(id))) {
-                    const service = services.find(s =>
+                    const busService = services.find(s =>
                         s?.startsWith('org.kde.StatusNotifierItem')) ?? services[0];
-                    const id = Util.indicatorId(
-                        path === DEFAULT_ITEM_OBJECT_PATH ? service : null,
-                        name, path);
+                    // An item on a non-default path registers itself by its
+                    // path, so register it the same way: with the bus service
+                    // its id would differ and the item would be added twice.
+                    const service = path === DEFAULT_ITEM_OBJECT_PATH
+                        ? busService : path;
+                    const id = Util.indicatorId(service, name, path);
                     Util.Logger.warn(`Using Brute-force mode for StatusNotifierItem ${id}`);
                     // eslint-disable-next-line no-await-in-loop
                     await this._registerItem(service, name, path);
