@@ -162,6 +162,9 @@ export class StatusNotifierWatcher {
 
         const subProcess = Gio.Subprocess.new(['gjs', '-m', busAnalyzer],
             Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
+        // Once cancelled nobody reads its pipes anymore, so it could block
+        // writing to them and outlive us.
+        const cancelId = cancellable.connect(() => subProcess.force_exit());
 
         const stdOut = subProcess.get_stdout_pipe();
         const dataInputStream = new Gio.DataInputStream({base_stream: stdOut});
@@ -198,6 +201,7 @@ export class StatusNotifierWatcher {
 
         const [, stdErr] = await subProcess.communicate_async(null, cancellable);
         await subProcess.wait_async(cancellable);
+        cancellable.disconnect(cancelId);
 
         if (subProcess.get_exit_status() !== 0) {
             const errorLines = textDecoder.decode(stdErr.toArray()).split('\n');
