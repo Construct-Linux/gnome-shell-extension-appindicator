@@ -46,6 +46,15 @@ export function addIconToPanel(statusIcon) {
     if (!(statusIcon instanceof BaseStatusIcon))
         throw TypeError(`Unexpected icon type: ${statusIcon}`);
 
+    addIconToStatusArea(statusIcon);
+
+    // Connected once per icon: re-adding the icon does not destroy it, so a
+    // connection made on every re-add would never be released.
+    Util.connectSmart(SettingsManager.getDefaultGSettings(), 'changed::tray-pos',
+        statusIcon, () => addIconToStatusArea(statusIcon));
+}
+
+function addIconToStatusArea(statusIcon) {
     const settings = SettingsManager.getDefaultGSettings();
     const indicatorId = `appindicator-${statusIcon.uniqueId}`;
 
@@ -59,9 +68,6 @@ export function addIconToPanel(statusIcon) {
 
     Main.panel.addToStatusArea(indicatorId, statusIcon, 1,
         settings.get_string('tray-pos'));
-
-    Util.connectSmart(settings, 'changed::tray-pos', statusIcon, () =>
-        addIconToPanel(statusIcon));
 }
 
 export function getTrayIcons() {
