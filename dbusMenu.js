@@ -295,12 +295,26 @@ export const DBusClient = GObject.registerClass({
         // if we don't have any requests queued, we'll need to add one
         this._propertiesRequest = new PromiseUtils.IdlePromise(
             GLib.PRIORITY_DEFAULT_IDLE, cancellable);
-        await this._propertiesRequest;
+        this._propertiesRequestCancellable = cancellable;
 
-        const requestedProperties = Array.from(this._propertiesRequestedFor);
-        this._propertiesRequestedFor.clear();
-        const [result] = await this.GetGroupPropertiesAsync(requestedProperties,
-            [], cancellable);
+        let result;
+        try {
+            await this._propertiesRequest;
+
+            const requestedProperties = Array.from(this._propertiesRequestedFor);
+            this._propertiesRequestedFor.clear();
+            [result] = await this.GetGroupPropertiesAsync(requestedProperties,
+                [], cancellable);
+        } finally {
+            if (this._propertiesRequestCancellable === cancellable)
+                this._propertiesRequestCancellable = null;
+
+            // A layout update does not wait for the request it started, so
+            // the request releases the cancellable once the update is over.
+            if (cancellable !== this._layoutUpdateCancellable &&
+                cancellable !== this._propertiesUpdateCancellable)
+                cancellable.release();
+        }
 
         result.forEach(([id, properties]) => {
             const item = this._items.get(id);
@@ -367,6 +381,9 @@ export const DBusClient = GObject.registerClass({
         } finally {
             if (this._layoutUpdateCancellable === cancellable)
                 this._layoutUpdateCancellable = null;
+
+            if (this._propertiesRequestCancellable !== cancellable)
+                cancellable.release();
         }
     }
 
@@ -454,6 +471,8 @@ export const DBusClient = GObject.registerClass({
         } finally {
             if (this._propertiesUpdateCancellable === cancellable)
                 this._propertiesUpdateCancellable = null;
+
+            cancellable.release();
         }
     }
 

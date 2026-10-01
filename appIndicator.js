@@ -313,6 +313,8 @@ class AppIndicatorProxy extends DBusProxy {
                 this._cancellables.delete(cancellableName);
                 throw e;
             }
+        } finally {
+            cancellable.release();
         }
     }
 
@@ -346,6 +348,8 @@ class AppIndicatorProxy extends DBusProxy {
                 delete this._changedProperties[propertyName];
                 throw e;
             }
+        } finally {
+            cancellable.release();
         }
     }
 
@@ -1138,8 +1142,10 @@ class AppIndicatorsIconActor extends St.Icon {
     }
 
     _cleanupIconLoadingCancellable(iconType, loadingId) {
-        if (this._loadingIcons)
+        if (this._loadingIcons) {
+            this._loadingIcons[iconType].get(loadingId)?.release();
             this._loadingIcons[iconType].delete(loadingId);
+        }
     }
 
     _getResourceScale() {

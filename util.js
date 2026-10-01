@@ -272,4 +272,11 @@ class CancellableChild extends Gio.Cancellable {
         this._disconnectFromParent();
         this._realCancel();
     }
+
+    // To be called once the operation using this child is over without being
+    // cancelled: the parent's handler holds a reference to the child, so the
+    // handler and the child would otherwise live as long as the parent does.
+    release() {
+        this._disconnectFromParent();
+    }
 });
