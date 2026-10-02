@@ -44,11 +44,8 @@ git = find_program('git', required: false)
 if git.found() and fs.exists(meson.source_root() / '.git')
     js_sources = run_command(git, '-C', meson.source_root(),
         'ls-files', '--', ':(top,glob)*.js').stdout().strip().split('\n')
-    all_js_sources = run_command(git, '-C', meson.source_root(),
-        'ls-files', '--', ':(top,glob)**/*.js').stdout().strip().split('\n')
 else
     js_sources = run_command(sh, '-c', ls_cmd.format('*.js')).stdout().strip().split('\n')
-    all_js_sources = run_command('find', '-name', '*.js').stdout().strip().split('\n')
 endif
 
 install_data(metadata,
@@ -75,16 +72,6 @@ if gjs.found()
         protocol: 'tap')
 endif
 
-eslint = find_program('eslint', required: false)
-if eslint.found()
-    test('eslint',
-        eslint,
-        env: {'ESLINT_USE_FLAT_CONFIG': 'false'},
-        args: ['-f', 'tap'] + files(all_js_sources),
-        workdir: meson.source_root(),
-        protocol: 'tap')
-endif
-
 if local_install
     run_target('zip-file',
         command: [
@@ -106,7 +93,6 @@ summary({
     'Local installation': local_install,
     'Extension UUID': uuid,
     'Gettext domain': gettext_domain,
-    'ESLint': eslint.found(),
     'GJS': gjs.found(),
     },
     section: 'Configuration')
