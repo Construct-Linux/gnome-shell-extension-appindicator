@@ -1133,15 +1133,6 @@ class AppIndicatorsIconActor extends St.Icon {
         }
     }
 
-    _getResourceScale() {
-        // Remove this when we remove support for versions earlier than 3.38
-        const resourceScale = this.get_resource_scale();
-        if (Array.isArray(resourceScale))
-            return resourceScale[0] ? resourceScale[1] : 1.0;
-
-        return resourceScale;
-    }
-
     // Will look the icon up in the cache, if it's found
     // it will return it. Otherwise, it will create it and cache it.
     async _cacheOrCreateIconByName(iconType, iconSize, iconScaling, iconName, themePath) {
@@ -1394,12 +1385,8 @@ class AppIndicatorsIconActor extends St.Icon {
             preferredHeight: height,
         });
 
-        // Remove this dynamic check when we depend on GNOME 48.
-        const coglContext = [];
-        const mutterBackend = global.stage?.context?.get_backend?.();
-        if (imageContent.set_bytes.length === 6 && mutterBackend?.get_cogl_context)
-            coglContext.push(mutterBackend.get_cogl_context());
-        imageContent.set_bytes(...coglContext, pixmapVariant.get_data_as_bytes(),
+        const coglContext = global.stage.context.get_backend().get_cogl_context();
+        imageContent.set_bytes(coglContext, pixmapVariant.get_data_as_bytes(),
             PIXMAPS_FORMAT, width, height, rowStride);
 
         if (iconType !== SNIconType.OVERLAY && !this._indicator.hasOverlayIcon) {
@@ -1527,7 +1514,7 @@ class AppIndicatorsIconActor extends St.Icon {
     // updates the base icon
     async _createIcon(name, pixmap, theme, iconType, iconSize) {
         const {scaleFactor} = St.ThemeContext.get_for_stage(global.stage);
-        const resourceScale = this._getResourceScale();
+        const resourceScale = this.get_resource_scale();
         const iconScaling = Math.ceil(resourceScale * scaleFactor);
 
         // From now on we consider them the same thing, as one replaces the other
