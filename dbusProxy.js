@@ -4,8 +4,6 @@ import GObject from 'gi://GObject';
 
 import {CancellableChild, Logger} from './util.js';
 
-Gio._promisify(Gio.DBusProxy.prototype, 'init_async');
-
 export const DBusProxy = GObject.registerClass({
     Signals: {'destroy': {}},
 }, class DBusProxy extends Gio.DBusProxy {
@@ -52,9 +50,6 @@ export const DBusProxy = GObject.registerClass({
     async initAsync(cancellable) {
         this._cancellable = new CancellableChild(cancellable);
         await this.init_async(GLib.PRIORITY_DEFAULT, this._cancellable);
-
-        this.gInterfaceInfo.methods.map(m => m.name).forEach(method =>
-            this._ensureAsyncMethod(method));
     }
 
     destroy() {
@@ -64,26 +59,6 @@ export const DBusProxy = GObject.registerClass({
 
         if (this._cancellable)
             this._cancellable.cancel();
-    }
-
-    // This can be removed when we will have GNOME 43 as minimum version
-    _ensureAsyncMethod(method) {
-        if (this[`${method}Async`])
-            return;
-
-        if (!this[`${method}Remote`])
-            throw new Error(`Missing remote method '${method}'`);
-
-        this[`${method}Async`] = function (...args) {
-            return new Promise((resolve, reject) => {
-                this[`${method}Remote`](...args, (ret, e) => {
-                    if (e)
-                        reject(e);
-                    else
-                        resolve(ret);
-                });
-            });
-        };
     }
 
     _onSignal() {
