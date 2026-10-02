@@ -21,7 +21,6 @@ import St from 'gi://St';
 
 import * as AppDisplay from 'resource:///org/gnome/shell/ui/appDisplay.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import * as Panel from 'resource:///org/gnome/shell/ui/panel.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 import * as AppIndicator from './appIndicator.js';
@@ -30,16 +29,10 @@ import * as SettingsManager from './settingsManager.js';
 import * as Util from './util.js';
 import * as DBusMenu from './dbusMenu.js';
 
-const DEFAULT_ICON_SIZE = Panel.PANEL_ICON_SIZE || 16;
+const DEFAULT_ICON_SIZE = 16;
 
 function getClutterSettings() {
-    // When we will depend on GNOME 47 we can just use Clutter.Actor.get_context()
-    try {
-        const clutterContext = global.stage.context;
-        return clutterContext.get_settings();
-    } catch {
-        return Clutter.Settings.get_default();
-    }
+    return global.stage.context.get_settings();
 }
 
 export function addIconToPanel(statusIcon) {
