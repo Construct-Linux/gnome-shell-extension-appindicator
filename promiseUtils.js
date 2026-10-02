@@ -3,7 +3,6 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
-import Meta from 'gi://GdkPixbuf';
 
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
@@ -275,39 +274,6 @@ export class TimeoutSecondsPromise extends GSourcePromise {
             throw TypeError('Invalid interval');
 
         super(GLib.timeout_source_new_seconds(interval), priority, cancellable);
-    }
-}
-
-export class MetaLaterPromise extends CancellablePromise {
-    constructor(laterType, cancellable) {
-        if (arguments.length === 1 && laterType instanceof Function) {
-            super(laterType);
-            return;
-        }
-
-        if (laterType && laterType.constructor.$gtype !== Meta.LaterType.$gtype)
-            throw new TypeError(`laterType ${laterType} is not of type Meta.LaterType`);
-        else if (!laterType)
-            laterType = Meta.LaterType.BEFORE_REDRAW;
-
-        let id;
-        super(resolve => {
-            id = Meta.later_add(laterType, () => {
-                this.remove();
-                resolve();
-                return GLib.SOURCE_REMOVE;
-            });
-        }, cancellable);
-
-        this._id = id;
-    }
-
-    _cleanup() {
-        if (this._id) {
-            Meta.later_remove(this._id);
-            this._id = 0;
-        }
-        super._cleanup();
     }
 }
 
