@@ -25,15 +25,7 @@ function loadInterfaceXml(extension, filename) {
     const [result, contents] = imports.gi.GLib.file_get_contents(file.get_path());
 
     if (result) {
-        // HACK: The "" + trick is important as hell because file_get_contents returns
-        // an object (WTF?) but Gio.makeProxyWrapper requires `typeof() === "string"`
-        // Otherwise, it will try to check `instanceof XML` and fail miserably because there
-        // is no `XML` on very recent SpiderMonkey releases (or, if SpiderMonkey is old enough,
-        // will spit out a TypeError soon).
-        let nodeContents = contents;
-        if (contents instanceof Uint8Array)
-            nodeContents = imports.byteArray.toString(contents);
-        return `<node>${nodeContents}</node>`;
+        return `<node>${imports.byteArray.toString(contents)}</node>`;
     } else {
         throw new Error(`AppIndicatorSupport: Could not load file: ${filename}`);
     }
