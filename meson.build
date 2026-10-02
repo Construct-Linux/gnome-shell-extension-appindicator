@@ -72,23 +72,6 @@ if gjs.found()
         protocol: 'tap')
 endif
 
-if local_install
-    run_target('zip-file',
-        command: [
-            sh, '-c',
-            ';'.join([
-                'set -xe',
-                'tmp_path="$(mktemp -d)"',
-                'trap "rm -rf $tmp_path" EXIT INT',
-                'zip_file="$MESON_BUILD_ROOT/@0@.zip"'.format(uuid),
-                'env DESTDIR="$tmp_path" ninja -C $MESON_BUILD_ROOT install',
-                'cd "$tmp_path/@0@"'.format(extension_dir),
-                'rm -f "$zip_file"',
-                'zip -r "$zip_file" .',
-            ])
-        ])
-endif
-
 summary({
     'Local installation': local_install,
     'Extension UUID': uuid,
