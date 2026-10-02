@@ -19,7 +19,6 @@ import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
-import * as AppDisplay from 'resource:///org/gnome/shell/ui/appDisplay.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
@@ -537,66 +536,8 @@ class IndicatorTrayIcon extends BaseStatusIcon {
         return super.vfunc_navigate_focus(from, direction);
     }
 
-    _getSimulatedButtonEvent(touchEvent) {
-        const event = Clutter.Event.new(Clutter.EventType.BUTTON_RELEASE);
-        event.set_button(1);
-        event.set_time(touchEvent.get_time());
-        event.set_flags(touchEvent.get_flags());
-        event.set_stage(global.stage);
-        event.set_source(touchEvent.get_source());
-        event.set_coords(...touchEvent.get_coords());
-        event.set_state(touchEvent.get_state());
-        return event;
-    }
-
-    vfunc_touch_event(event) {
-        // Under X11 we rely on emulated pointer events
-        if (!imports.gi.Meta.is_wayland_compositor())
-            return Clutter.EVENT_PROPAGATE;
-
-        const slot = event.get_event_sequence().get_slot();
-
-        if (!this._touchPressSlot &&
-            event.get_type() === Clutter.EventType.TOUCH_BEGIN) {
-            this.add_style_pseudo_class('active');
-            this._touchButtonEvent = this._getSimulatedButtonEvent(event);
-            this._touchPressSlot = slot;
-            this._touchDelayPromise = new PromiseUtils.TimeoutPromise(
-                AppDisplay.MENU_POPUP_TIMEOUT);
-            this._touchDelayPromise.then(() => {
-                delete this._touchDelayPromise;
-                delete this._touchPressSlot;
-                this._touchButtonEvent.set_button(3);
-                this._icon.click(this._touchButtonEvent);
-                this.remove_style_pseudo_class('active');
-            });
-        } else if (event.get_type() === Clutter.EventType.TOUCH_END &&
-                   this._touchPressSlot === slot) {
-            delete this._touchPressSlot;
-            delete this._touchButtonEvent;
-            if (this._touchDelayPromise) {
-                this._touchDelayPromise.cancel();
-                delete this._touchDelayPromise;
-            }
-
-            this._icon.click(this._getSimulatedButtonEvent(event));
-            this.remove_style_pseudo_class('active');
-        } else if (event.get_type() === Clutter.EventType.TOUCH_UPDATE &&
-                   this._touchPressSlot === slot) {
-            this.add_style_pseudo_class('active');
-            this._touchButtonEvent = this._getSimulatedButtonEvent(event);
-        }
-
-        return Clutter.EVENT_PROPAGATE;
-    }
-
     vfunc_leave_event(event) {
         this.remove_style_pseudo_class('active');
-
-        if (this._touchDelayPromise) {
-            this._touchDelayPromise.cancel();
-            delete this._touchDelayPromise;
-        }
 
         return super.vfunc_leave_event(event);
     }
