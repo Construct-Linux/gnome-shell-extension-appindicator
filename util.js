@@ -20,15 +20,11 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 import {Logger} from './logger.js';
 import {BaseStatusIcon} from './indicatorStatusIcon.js';
 import {BUS_ADDRESS_REGEX} from './dbusUtils.js';
-
-Gio._promisify(Gio._LocalFilePrototype, 'read');
-Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async');
 
 export function indicatorId(service, busName, objectPath) {
     if (service !== busName && service?.match(BUS_ADDRESS_REGEX))
@@ -177,13 +173,6 @@ export async function waitForStartupCompletion(cancellable) {
 }
 
 export {Logger};
-
-export function versionCheck(required) {
-    const current = Config.PACKAGE_VERSION;
-    const currentArray = current.split('.');
-    const [major] = currentArray;
-    return major >= required;
-}
 
 export function tryCleanupOldIndicators() {
     const indicatorType = BaseStatusIcon;

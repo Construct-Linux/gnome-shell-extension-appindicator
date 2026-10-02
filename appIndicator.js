@@ -130,7 +130,6 @@ class AppIndicatorProxy extends DBusProxy {
 
     destroy() {
         delete this._appInfo;
-        delete this._fakeAppInfo;
 
         const cachedProperties = this.get_cached_property_names();
         if (cachedProperties) {
@@ -497,8 +496,6 @@ export class AppIndicator extends Signals.EventEmitter {
     }
 
     async _updateAppInfo(cancellable) {
-        delete this._fakeAppInfo;
-
         if (!this.hasNameOwner) {
             delete this._appInfo;
             return;
@@ -506,31 +503,20 @@ export class AppIndicator extends Signals.EventEmitter {
             return;
         }
 
-        let commandLine;
         try {
             const pid = await DBusUtils.getProcessId(this.busName, cancellable);
             this._appInfo =
                 Shell.WindowTracker.get_default().get_app_from_pid(pid)?.appInfo;
-
-            if (!this._appInfo) {
-                commandLine = await DBusUtils.getProcessNameForPid(pid,
-                    cancellable, GLib.PRIORITY_LOW);
-            }
         } catch (e) {
             if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 return;
 
             Util.Logger.debug(
-                `${this.uniqueId}, failed getting command line: ${e.message}\n${e.stack}`);
+                `${this.uniqueId}, failed getting the application: ${e.message}\n${e.stack}`);
         }
 
-        if (this._appInfo) {
+        if (this._appInfo)
             this.emit('accessible-name');
-        } else {
-            this._fakeAppInfo = Gio.AppInfo.create_from_commandline(
-                commandLine ?? 'true', this.title ?? this.id,
-                Gio.AppInfoCreateFlags.SUPPORTS_STARTUP_NOTIFICATION);
-        }
     }
 
     _checkIfReady() {
@@ -835,12 +821,8 @@ export class AppIndicator extends Signals.EventEmitter {
 
     _getActivationToken(timestamp) {
         const launchContext = global.create_app_launch_context(timestamp, -1);
-        // Prevent busy cursor, null appInfo is supported by mutter 49 and onwards
-        const appInfo = Util.versionCheck(49)
-            ? null : this._appInfo ?? this._fakeAppInfo;
-
-        const startupNotifyID = appInfo !== undefined
-            ? launchContext.get_startup_notify_id(appInfo, []) : null;
+        // No application info, so that the token does not show a busy cursor.
+        const startupNotifyID = launchContext.get_startup_notify_id(null, []);
 
         return [launchContext, startupNotifyID];
     }

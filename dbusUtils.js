@@ -81,15 +81,6 @@ export async function getProcessId(connectionName, cancellable = null, bus = Gio
     return pid;
 }
 
-export async function getProcessNameForPid(pid, cancellable = null,
-    priority = GLib.PRIORITY_DEFAULT) {
-    const cmdFile = Gio.File.new_for_path(`/proc/${pid}/cmdline`);
-    const inputStream = await cmdFile.read_async(priority, cancellable);
-    const bytes = await inputStream.read_bytes_async(2048, priority, cancellable);
-    const textDecoder = new TextDecoder();
-    return textDecoder.decode(bytes.toArray().map(v => !v ? 0x20 : v));
-}
-
 export async function* introspectBusObject(bus, name, cancellable,
     interfaces = undefined, path = undefined) {
     if (!path)
