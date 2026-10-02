@@ -591,11 +591,10 @@ export const DBusClient = GObject.registerClass({
 // ////////////////////////////////////////////////////////////////////////
 
 // https://bugzilla.gnome.org/show_bug.cgi?id=731514
-// GNOME 3.10 and 3.12 can't open a nested submenu.
-// Patches have been written, but it's not clear when (if?) they will be applied.
-// We also don't know whether they will be backported to 3.10, so we will work around
-// it in the meantime. Offending versions can be clearly identified:
-const NEED_NESTED_SUBMENU_FIX = '_setOpenedSubMenu' in PopupMenu.PopupMenu.prototype;
+// A PopupSubMenuMenuItem registers its submenu with the top-level menu's
+// _setOpenedSubMenu(), which closes whatever submenu was open there, so opening a
+// nested submenu would close its parent. Each level tracks its opened submenu here
+// instead, and the root menu's _setOpenedSubMenu() is replaced in attachToMenu().
 
 /**
  * Creates new wrapper menu items and injects methods for managing them at runtime.
@@ -669,26 +668,22 @@ const MenuItemFactory = {
 
     _onOpenStateChanged(menu, open) {
         if (open) {
-            if (NEED_NESTED_SUBMENU_FIX) {
-                // close our own submenus
-                if (menu._openedSubMenu)
-                    menu._openedSubMenu.close(false);
+            // close our own submenus
+            if (menu._openedSubMenu)
+                menu._openedSubMenu.close(false);
 
-                // register ourselves and close sibling submenus
-                if (menu._parent._openedSubMenu && menu._parent._openedSubMenu !== menu)
-                    menu._parent._openedSubMenu.close(true);
+            // register ourselves and close sibling submenus
+            if (menu._parent._openedSubMenu && menu._parent._openedSubMenu !== menu)
+                menu._parent._openedSubMenu.close(true);
 
-                menu._parent._openedSubMenu = menu;
-            }
+            menu._parent._openedSubMenu = menu;
 
             this._dbusItem.handleEvent('opened', null, 0).catch(logError);
             this._dbusItem.sendAboutToShow();
         } else {
-            if (NEED_NESTED_SUBMENU_FIX) {
-                // close our own submenus
-                if (menu._openedSubMenu)
-                    menu._openedSubMenu.close(false);
-            }
+            // close our own submenus
+            if (menu._openedSubMenu)
+                menu._openedSubMenu.close(false);
 
             this._dbusItem.handleEvent('closed', null, 0).catch(logError);
         }
@@ -886,8 +881,7 @@ export class Client extends Signals.EventEmitter {
         // cleanup: remove existing children (just in case)
         this._rootMenu.removeAll();
 
-        if (NEED_NESTED_SUBMENU_FIX)
-            menu._setOpenedSubMenu = this._setOpenedSubmenu.bind(this);
+        menu._setOpenedSubMenu = this._setOpenedSubmenu.bind(this);
 
         // connect handlers
         Util.connectSmart(menu, 'open-state-changed', this, this._onMenuOpenStateChanged);
