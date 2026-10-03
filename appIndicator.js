@@ -1085,6 +1085,7 @@ class AppIndicatorsIconActor extends St.Icon {
             this._indicator = null;
             this._loadingIcons = null;
             this._iconTheme = null;
+            this._pixmapContent = null;
         });
     }
 
@@ -1424,6 +1425,18 @@ class AppIndicatorsIconActor extends St.Icon {
             PixmapsUtils.getBestPixmap(pixmapsVariant, iconSize * iconScaling);
 
         const id = `__PIXMAP_ICON_${width}x${height}`;
+        const bytes = pixmapVariant.get_data_as_bytes();
+        const scaledSize = iconSize * scaleFactor;
+        const direct = iconType !== SNIconType.OVERLAY &&
+            !this._indicator.hasOverlayIcon;
+
+        // Applications re-send the same pixmap on every update burst: keep
+        // the texture already shown instead of uploading it again.
+        const shown = this._pixmapContent;
+        if (direct && shown && this.content === shown.content &&
+            shown.width === width && shown.height === height &&
+            shown.scaledSize === scaledSize && shown.bytes.equal(bytes))
+            return null;
 
         const imageContent = new St.ImageContent({
             preferredWidth: width,
@@ -1431,12 +1444,14 @@ class AppIndicatorsIconActor extends St.Icon {
         });
 
         const coglContext = global.stage.context.get_backend().get_cogl_context();
-        imageContent.set_bytes(coglContext, pixmapVariant.get_data_as_bytes(),
+        imageContent.set_bytes(coglContext, bytes,
             PIXMAPS_FORMAT, width, height, rowStride);
 
-        if (iconType !== SNIconType.OVERLAY && !this._indicator.hasOverlayIcon) {
-            const scaledSize = iconSize * scaleFactor;
+        if (direct) {
             this._setImageContent(imageContent, scaledSize, scaledSize);
+            this._pixmapContent = {
+                content: imageContent, bytes, width, height, scaledSize,
+            };
             return null;
         }
 
