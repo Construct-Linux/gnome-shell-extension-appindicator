@@ -861,15 +861,29 @@ export class AppIndicator extends Signals.EventEmitter {
             await this._proxy.ActivateAsync(x, y, cancellable);
             this.supportsActivation = true;
         } catch (e) {
-            if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD)) {
+            if (e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
                 this.supportsActivation = false;
-                Util.Logger.warn(`${this.id}, does not support activation: ${e.message}`);
-                return;
-            }
 
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                Util.Logger.critical(`${this.id}, failed to activate: ${e.message}`);
+            this._logCallError('activate', e);
         }
+    }
+
+    // Failed calls into the application are the application's doing (it
+    // went away, does not implement the method, or answered an error), so
+    // they only go to the debug log; anything else is a local failure.
+    _logCallError(action, e) {
+        if (!(e instanceof GLib.Error)) {
+            logError(e, `${this.id}, failed to ${action}`);
+            return;
+        }
+
+        if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+            return;
+
+        if (e.domain === Gio.DBusError.quark() || Gio.DBusError.is_remote_error(e))
+            Util.Logger.debug(`${this.id}, failed to ${action}: ${e.message}`);
+        else
+            Util.Logger.warn(`${this.id}, failed to ${action}: ${e.message}`);
     }
 
     async secondaryActivate(timestamp, x, y) {
@@ -893,8 +907,7 @@ export class AppIndicator extends Signals.EventEmitter {
             if (!this._hasAyatanaSecondaryActivate)
                 await this._proxy.SecondaryActivateAsync(x, y, cancellable);
         } catch (e) {
-            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                Util.Logger.critical(`${this.id}, failed to secondary activate: ${e.message}`);
+            this._logCallError('secondary activate', e);
         }
     }
 
@@ -916,7 +929,7 @@ export class AppIndicator extends Signals.EventEmitter {
 
             await Promise.all(actions);
         } catch (e) {
-            Util.Logger.critical(`${this.id}, failed to scroll: ${e.message}`);
+            this._logCallError('scroll', e);
         }
     }
 }
@@ -1220,7 +1233,7 @@ class AppIndicatorsIconActor extends St.Icon {
                 file.get_path(), cancellable);
 
             if (!format) {
-                Util.Logger.critical(`${this.debugId}, Invalid image format: ${file.get_path()}`);
+                Util.Logger.warn(`${this.debugId}, Invalid image format: ${file.get_path()}`);
                 return null;
             }
 

@@ -156,7 +156,7 @@ export class DbusMenuItem extends Signals.EventEmitter {
         }
 
         if (pos < 0) {
-            Util.Logger.critical("Trying to remove child which doesn't exist");
+            Util.Logger.warn("Trying to remove child which doesn't exist");
         } else {
             this._children_ids.splice(pos, 1);
             this.emit('child-removed', this._client.getItem(childId));
@@ -174,7 +174,7 @@ export class DbusMenuItem extends Signals.EventEmitter {
         }
 
         if (oldPos < 0) {
-            Util.Logger.critical("tried to move child which wasn't in the list");
+            Util.Logger.warn("tried to move child which wasn't in the list");
             return;
         }
 
