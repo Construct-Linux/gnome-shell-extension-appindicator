@@ -1037,14 +1037,16 @@ class AppIndicatorsIconActor extends St.Icon {
 
         Object.values(SNIconType).forEach(t => (this._loadingIcons[t] = new Map()));
 
-        Util.connectSmart(this._indicator, 'icon', this, () => {
+        // An hidden icon only notes that it changed and catches up when it is
+        // shown again.
+        const onIconChanged = () => {
             if (this.is_mapped())
-                this._updateIcon();
-        });
-        Util.connectSmart(this._indicator, 'overlay-icon', this, () => {
-            if (this.is_mapped())
-                this._updateIcon();
-        });
+                this._updateIcon().catch(logError);
+            else
+                this._iconChanged = true;
+        };
+        Util.connectSmart(this._indicator, 'icon', this, onIconChanged);
+        Util.connectSmart(this._indicator, 'overlay-icon', this, onIconChanged);
         Util.connectSmart(this._indicator, 'reset', this,
             () => this._invalidateIconWhenFullyReady());
 
@@ -1072,8 +1074,15 @@ class AppIndicatorsIconActor extends St.Icon {
             () => this._invalidateIconWhenFullyReady());
 
         this.connect('notify::mapped', () => {
-            if (!this.is_mapped())
-                this._updateWhenFullyReady();
+            // a pending full update reloads the icon anyway
+            if (!this.is_mapped() || this._waitingReady ||
+                this._waitingInvalidation)
+                return;
+
+            if (this._iconChanged) {
+                delete this._iconChanged;
+                this._updateIcon().catch(logError);
+            }
         });
 
         this._updateWhenFullyReady();
@@ -1660,6 +1669,7 @@ class AppIndicatorsIconActor extends St.Icon {
 
     // called when the icon theme changes
     _invalidateIcon() {
+        delete this._iconChanged;
         this._iconCache.clear();
         this._cancellable.cancel();
         this._cancellable = new Gio.Cancellable();
