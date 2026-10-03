@@ -4,8 +4,6 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 
-import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
-
 export class CancellablePromise extends Promise {
     constructor(executor, cancellable) {
         if (!(executor instanceof Function))
@@ -269,15 +267,3 @@ export class TimeoutSecondsPromise extends GSourcePromise {
         super(GLib.timeout_source_new_seconds(interval), priority, cancellable);
     }
 }
-
-export function _promisifySignals(proto) {
-    if (proto.connect_once)
-        return;
-
-    proto.connect_once = function (signal, cancellable) {
-        return new SignalConnectionPromise(this, signal, cancellable);
-    };
-}
-
-_promisifySignals(GObject.Object.prototype);
-_promisifySignals(Signals.EventEmitter.prototype);

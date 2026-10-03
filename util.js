@@ -22,6 +22,7 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {Logger} from './logger.js';
+import {SignalConnectionPromise} from './promiseUtils.js';
 import {BaseStatusIcon} from './indicatorStatusIcon.js';
 import {BUS_ADDRESS_REGEX} from './dbusUtils.js';
 
@@ -138,7 +139,8 @@ export function destroyDefaultTheme() {
  */
 export async function waitForStartupCompletion(cancellable) {
     if (Main.layoutManager._startingUp)
-        await Main.layoutManager.connect_once('startup-complete', cancellable);
+        await new SignalConnectionPromise(Main.layoutManager, 'startup-complete',
+            cancellable);
 }
 
 export {Logger};
