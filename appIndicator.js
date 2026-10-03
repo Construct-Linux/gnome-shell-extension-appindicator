@@ -196,8 +196,9 @@ class AppIndicatorProxy extends DBusProxy {
         return null;
     }
 
-    // The Author of the spec didn't like the PropertiesChanged signal, so he invented his own
-    async _refreshOwnProperties(prop) {
+    // The Author of the spec didn't like the PropertiesChanged signal, so he
+    // invented his own: each New* signal only names the property family.
+    _ownPropertiesOf(prop) {
         const props = [prop, `${prop}Name`, `${prop}Pixmap`,
             `${prop}AccessibleDesc`];
 
@@ -206,22 +207,52 @@ class AppIndicatorProxy extends DBusProxy {
         if (prop.endsWith('Icon'))
             props.unshift('IconThemePath');
 
-        await Promise.all(
-            props.filter(p =>
-                this._propertiesList.includes(p)).map(async p => {
-                try {
-                    await this.refreshProperty(p, {
-                        skipEqualityCheck: p.endsWith('Pixmap'),
-                    });
-                } catch (e) {
-                    // An error returned by the application's Get is already
-                    // logged at debug level by refreshProperty(); applications
-                    // that miss or fail a property do it on every update.
-                    if (!(e instanceof GLib.Error) ||
-                        !Gio.DBusError.is_remote_error(e))
-                        logError(e);
+        return props.filter(p => this._propertiesList.includes(p));
+    }
+
+    // A burst of signals is answered with a single GetAll rather than one Get
+    // per property of each family it names.
+    async _refreshOwnProperties(props) {
+        const cancellableName = 'SignalsGetAll';
+        const cancellable = this._cancelRefreshProperties({
+            propertyName: cancellableName,
+            addNew: true,
+        });
+
+        try {
+            const [valuesVariant] = (await this.getProperties(
+                cancellable)).deep_unpack();
+            this._cancellables.delete(cancellableName);
+
+            await Promise.all(props.map(p => {
+                const value = valuesVariant[p];
+                if (!value) {
+                    // the object no longer has it
+                    this.set_cached_property(p, null);
+                    return null;
                 }
+
+                return this._queuePropertyUpdate(p, value, {cancellable});
             }));
+        } catch (e) {
+            if (!(e instanceof GLib.Error)) {
+                logError(e);
+                return;
+            }
+
+            if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                return;
+
+            this._cancellables.delete(cancellableName);
+
+            // applications that fail GetAll do it on every update
+            if (e.domain === Gio.DBusError.quark() || Gio.DBusError.is_remote_error(e))
+                Util.Logger.debug(`${this.gName}${this.gObjectPath}: GetAll failed: ${e.message}`);
+            else
+                logError(e);
+        } finally {
+            cancellable.release();
+        }
     }
 
     _onSignal(sender, signal, ...args) {
@@ -267,11 +298,12 @@ class AppIndicatorProxy extends DBusProxy {
             MAX_UPDATE_FREQUENCY, GLib.PRIORITY_DEFAULT_IDLE, cancellable);
         try {
             await this._signalsAccumulator;
-            const refreshPropertiesPromises =
-                [...this._accumulatedProperties].map(p =>
-                    this._refreshOwnProperties(p));
+            const props = new Set();
+            this._accumulatedProperties.forEach(p =>
+                this._ownPropertiesOf(p).forEach(o => props.add(o)));
             this._accumulatedProperties.clear();
-            await Promise.all(refreshPropertiesPromises);
+            if (props.size)
+                await this._refreshOwnProperties([...props]);
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 throw e;
