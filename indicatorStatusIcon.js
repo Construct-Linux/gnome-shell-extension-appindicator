@@ -98,9 +98,6 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
         Util.connectSmart(settings, 'changed::icon-opacity', this, this._updateOpacity);
         this.connect('notify::hover', () => this._onHoverChanged());
 
-        if (!super._onDestroy)
-            this.connect('destroy', () => this._onDestroy());
-
         this._box = new St.BoxLayout({style_class: 'panel-status-indicators-box'});
         this.add_child(this._box);
 
@@ -135,8 +132,7 @@ class IndicatorBaseStatusIcon extends PanelMenu.Button {
         if (this._icon)
             this._icon.destroy();
 
-        if (super._onDestroy)
-            super._onDestroy();
+        super._onDestroy();
     }
 
     isReady() {
@@ -273,7 +269,7 @@ class IndicatorStatusIcon extends BaseStatusIcon {
             new AppIndicator.IconActor(indicator, DEFAULT_ICON_SIZE));
 
         // Disable upstream's click gesture and fall back to vfunc_button_press_event etc.
-        this._clickGesture?.set_enabled(false);
+        this._clickGesture.set_enabled(false);
 
         this._indicator = indicator;
 

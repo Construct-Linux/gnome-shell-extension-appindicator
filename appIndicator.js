@@ -1070,10 +1070,7 @@ class AppIndicatorsIconActor extends St.Icon {
             this._invalidateIconWhenFullyReady();
         });
 
-        if (GObject.signal_lookup('resource-scale-changed', this))
-            this.connect('resource-scale-changed', () => this._invalidateIcon());
-        else
-            this.connect('notify::resource-scale', () => this._invalidateIcon());
+        this.connect('resource-scale-changed', () => this._invalidateIcon());
 
         Util.connectSmart(themeContext, 'notify::scale-factor', this, tc => {
             this._updateIconSize();

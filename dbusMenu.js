@@ -755,14 +755,10 @@ const MenuItemFactory = {
     _updateLabel() {
         const label = this._dbusItem.propertyGet('label').replace(/_([^_])/, '$1');
 
-        if (this.label) // especially on GS3.8, the separator item might not even have a hidden label
-            this.label.set_text(label);
+        this.label.set_text(label);
     },
 
     _updateOrnament() {
-        if (!this.setOrnament)
-            return; // separators and alike might not have gotten the polyfill
-
         if (this._dbusItem.propertyGet('toggle-type') === 'checkmark' &&
             this._dbusItem.propertyGetInt('toggle-state'))
             this.setOrnament(PopupMenu.Ornament.CHECK);
