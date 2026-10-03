@@ -21,9 +21,6 @@ export class CancellablePromise extends Promise {
             rejector = reject;
         });
 
-        const {stack: promiseStack} = new Error();
-        this._promiseStack = promiseStack;
-
         this._resolver = (...args) => {
             resolver(...args);
             this._resolved = true;
@@ -113,10 +110,8 @@ export class CancellablePromise extends Promise {
             return this;
 
         this._cancelled = true;
-        const error = new GLib.Error(Gio.IOErrorEnum,
-            Gio.IOErrorEnum.CANCELLED, 'Promise cancelled');
-        error.stack += `## Promise created at:\n${this._promiseStack}`;
-        this._rejector(error);
+        this._rejector(new GLib.Error(Gio.IOErrorEnum,
+            Gio.IOErrorEnum.CANCELLED, 'Promise cancelled'));
 
         return this;
     }
@@ -214,9 +209,7 @@ export class GSourcePromise extends CancellablePromise {
         }, cancellable);
 
         this._gsource = gsource;
-        this._gsource.set_name(`[gnome-shell] ${this.constructor.name} ${
-            new Error().stack.split('\n').filter(line =>
-                !line.match(/misc\/promiseUtils\.js/))[0]}`);
+        this._gsource.set_name(`[appindicator] ${this.constructor.name}`);
 
         if (this.rejected())
             this._gsource.destroy();
