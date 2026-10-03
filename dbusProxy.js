@@ -15,7 +15,7 @@ export const DBusProxy = GObject.registerClass({
     }
 
     static destroy() {
-        delete this._tupleType;
+        delete this._tupleVariantType;
     }
 
     _init(busName, objectPath, interfaceInfo, flags = Gio.DBusProxyFlags.NONE) {
