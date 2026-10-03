@@ -914,7 +914,7 @@ export class Client extends Signals.EventEmitter {
 
     _onRootChildAdded(dbusItem, child, position) {
         // Menu additions can be expensive, so let's do it in different chunks
-        const basePriority = this.isOpen ? GLib.PRIORITY_DEFAULT : GLib.PRIORITY_LOW;
+        const basePriority = this._rootMenu.isOpen ? GLib.PRIORITY_DEFAULT : GLib.PRIORITY_LOW;
         const idlePromise = new PromiseUtils.IdlePromise(
             basePriority + this._itemsBeingAdded.size, this.cancellable);
         this._itemsBeingAdded.add(child);
