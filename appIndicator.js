@@ -15,6 +15,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import Clutter from 'gi://Clutter';
+import Cogl from 'gi://Cogl';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import GdkPixbuf from 'gi://GdkPixbuf';
@@ -41,7 +42,7 @@ Gio._promisify(Gio.DBusConnection.prototype, 'call');
 
 const MAX_UPDATE_FREQUENCY = 30; // In ms
 const FALLBACK_ICON_NAME = 'image-loading-symbolic';
-const PIXMAPS_FORMAT = imports.gi.Cogl.PixelFormat.ARGB_8888;
+const PIXMAPS_FORMAT = Cogl.PixelFormat.ARGB_8888;
 
 export const SNICategory = Object.freeze({
     APPLICATION: 'ApplicationStatus',

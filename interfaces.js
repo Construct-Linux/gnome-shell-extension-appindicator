@@ -14,21 +14,18 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+import GLib from 'gi://GLib';
+
 export let StatusNotifierItem = null;
 export let StatusNotifierWatcher = null;
 export let DBusMenu = null;
 
 // loads a xml file into an in-memory string
 function loadInterfaceXml(extension, filename) {
-    const interfacesDir = extension.dir.get_child('interfaces-xml');
-    const file = interfacesDir.get_child(filename);
-    const [result, contents] = imports.gi.GLib.file_get_contents(file.get_path());
+    const file = extension.dir.get_child('interfaces-xml').get_child(filename);
+    const [, contents] = GLib.file_get_contents(file.get_path());
 
-    if (result) {
-        return `<node>${imports.byteArray.toString(contents)}</node>`;
-    } else {
-        throw new Error(`AppIndicatorSupport: Could not load file: ${filename}`);
-    }
+    return `<node>${new TextDecoder().decode(contents)}</node>`;
 }
 
 export function initialize(extension) {
