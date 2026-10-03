@@ -1,52 +1,23 @@
 project('gnome-shell-ubuntu-appindicators',
   version : '66',
-  meson_version : '>= 0.53',
+  meson_version : '>= 0.59',
   license: 'GPL2',
 )
 
-gnome = import ('gnome')
 i18n = import('i18n')
-fs = import('fs')
-
-if get_option('local_install').auto()
-    local_install = false
-    if get_option('prefix') == '/usr/local'
-        local_install = run_command(find_program('id'), '-u').stdout().strip() != '0'
-    endif
-else
-    local_install = get_option('local_install').enabled()
-endif
 
 sh = find_program('sh')
 jq = find_program('jq')
 metadata = files('metadata.json')
-uuid = run_command(jq, '-r', '.uuid', metadata).stdout().strip()
+uuid = run_command(jq, '-r', '.uuid', metadata, check: true).stdout().strip()
 
-if local_install
-    prefix = run_command(sh, '-c', 'echo $HOME').stdout().strip() / '.local'
-else
-    prefix = get_option('prefix')
-endif
+prefix = get_option('prefix')
+extension_dir = prefix / get_option('datadir') / 'gnome-shell' / 'extensions' / uuid
+locale_dir = prefix / get_option('localedir')
+schema_dir = prefix / get_option('datadir') / 'glib-2.0' / 'schemas'
 
-extension_dir = prefix / 'share' / 'gnome-shell' / 'extensions' / uuid
-
-if local_install
-    locale_dir = extension_dir / 'locale'
-    schema_dir = extension_dir / 'schemas'
-else
-    locale_dir = prefix / get_option('localedir')
-    schema_dir = prefix / get_option('datadir') / 'glib-2.0' / 'schemas'
-endif
-
-ls_cmd = ' '.join(['ls', '-1', '@0@'])
-
-git = find_program('git', required: false)
-if git.found() and fs.exists(meson.source_root() / '.git')
-    js_sources = run_command(git, '-C', meson.source_root(),
-        'ls-files', '--', ':(top,glob)*.js').stdout().strip().split('\n')
-else
-    js_sources = run_command(sh, '-c', ls_cmd.format('*.js')).stdout().strip().split('\n')
-endif
+js_sources = run_command(sh, '-c', 'cd "$1" && ls -1 *.js', 'sh',
+    meson.project_source_root(), check: true).stdout().strip().split('\n')
 
 install_data(metadata,
     files(js_sources),
@@ -73,7 +44,6 @@ if gjs.found()
 endif
 
 summary({
-    'Local installation': local_install,
     'Extension UUID': uuid,
     'Gettext domain': gettext_domain,
     'GJS': gjs.found(),

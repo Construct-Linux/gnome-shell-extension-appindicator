@@ -32,14 +32,14 @@ CONSTRUCT builds it with melange from `recipes/gnome-shell-extension-appindicato
 in spin-desktop, which runs:
 
 ```sh
-meson setup --prefix=/usr -Dlocal_install=disabled build
+meson setup --prefix=/usr build
 meson compile -C build
 DESTDIR=<destdir> meson install -C build
 ```
 
-It needs meson, ninja, jq, gettext and glib's `glib-compile-schemas`. The
+It needs meson, ninja, jq and gettext. The
 extension goes to `/usr/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com`,
-its schema to `/usr/share/glib-2.0/schemas` and its translations to
+its schema, uncompiled, to `/usr/share/glib-2.0/schemas` and its translations to
 `/usr/share/locale`. `meson test -C build` runs the menu utilities test when
 gjs is installed.
 
