@@ -1449,9 +1449,12 @@ class AppIndicatorsIconActor extends St.Icon {
             !this._indicator.hasOverlayIcon;
 
         // Applications re-send the same pixmap on every update burst: keep
-        // the texture already shown instead of uploading it again.
+        // the texture already shown instead of uploading it again. A failed
+        // load since then set the fallback icon, which only
+        // _setImageContent() clears.
         const shown = this._pixmapContent;
         if (direct && shown && this.content === shown.content &&
+            !this.fallbackIconName &&
             shown.width === width && shown.height === height &&
             shown.scaledSize === scaledSize && shown.bytes.equal(bytes))
             return null;
