@@ -527,16 +527,30 @@ export class AppIndicator extends Signals.EventEmitter {
         }
     }
 
+    // Runs on every app-state-changed of the whole session until the
+    // application is found, so the bus is asked for the pid only once per
+    // name owner and every later try is a local lookup.
     async _updateAppInfo(cancellable) {
-        if (!this.hasNameOwner) {
+        const owner = this._proxy?.gNameOwner;
+        if (!owner) {
             delete this._appInfo;
-            return;
-        } else if (this._appInfo) {
+            delete this._ownerPid;
             return;
         }
 
+        if (this._ownerPid?.owner !== owner) {
+            delete this._appInfo;
+            this._ownerPid = {
+                owner,
+                pid: DBusUtils.getProcessId(owner, cancellable),
+            };
+        }
+
+        if (this._appInfo)
+            return;
+
         try {
-            const pid = await DBusUtils.getProcessId(this.busName, cancellable);
+            const pid = await this._ownerPid.pid;
             this._appInfo =
                 Shell.WindowTracker.get_default().get_app_from_pid(pid)?.appInfo;
         } catch (e) {
