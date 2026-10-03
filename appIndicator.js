@@ -1017,9 +1017,6 @@ class AppIndicatorsIconActor extends St.Icon {
                 GLib.get_home_dir(),
                 GLib.get_tmp_dir(),
             ];
-
-            this._userWritablePaths.push(Object.values(GLib.UserDirectory).slice(
-                0, -1).map(dirId => GLib.get_user_special_dir(dirId)));
         }
 
         return this._userWritablePaths;
