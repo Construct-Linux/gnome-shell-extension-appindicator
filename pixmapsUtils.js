@@ -14,21 +14,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-export function argbToRgba(src) {
-    const dest = new Uint8Array(src.length);
-
-    for (let j = 0; j < src.length; j += 4) {
-        const srcAlpha = src[j];
-
-        dest[j] = src[j + 1]; /* red */
-        dest[j + 1] = src[j + 2]; /* green */
-        dest[j + 2] = src[j + 3]; /* blue */
-        dest[j + 3] = srcAlpha; /* alpha */
-    }
-
-    return dest;
-}
-
 export function getBestPixmap(pixmapsVariant, preferredSize) {
     if (!pixmapsVariant)
         throw new TypeError('null pixmapsVariant');

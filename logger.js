@@ -77,26 +77,12 @@ export class Logger {
         }
     }
 
-    static destroy() {
-        delete Logger._domain;
-        delete Logger._uuid;
-        delete Logger._levels;
-    }
-
     static debug(message) {
         Logger._logStructured(GLib.LogLevelFlags.LEVEL_DEBUG, message);
     }
 
-    static message(message) {
-        Logger._logStructured(GLib.LogLevelFlags.LEVEL_MESSAGE, message);
-    }
-
     static warn(message) {
         Logger._logStructured(GLib.LogLevelFlags.LEVEL_WARNING, message);
-    }
-
-    static error(message) {
-        Logger._logStructured(GLib.LogLevelFlags.LEVEL_ERROR, message);
     }
 
     static critical(message) {

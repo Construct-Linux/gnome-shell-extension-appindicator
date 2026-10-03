@@ -36,9 +36,3 @@ export function initialize(extension) {
     StatusNotifierWatcher = loadInterfaceXml(extension, 'StatusNotifierWatcher.xml');
     DBusMenu = loadInterfaceXml(extension, 'DBusMenu.xml');
 }
-
-export function destroy() {
-    StatusNotifierItem = null;
-    StatusNotifierWatcher = null;
-    DBusMenu = null;
-}

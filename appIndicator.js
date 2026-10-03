@@ -34,11 +34,9 @@ import * as PromiseUtils from './promiseUtils.js';
 import * as SettingsManager from './settingsManager.js';
 import {DBusProxy} from './dbusProxy.js';
 
-Gio._promisify(Gio.File.prototype, 'read_async');
 Gio._promisify(GdkPixbuf.Pixbuf, 'get_file_info_async');
 Gio._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async',
     'new_from_stream_finish');
-Gio._promisify(St.IconInfo.prototype, 'load_symbolic_async');
 Gio._promisify(Gio.DBusConnection.prototype, 'call');
 
 const MAX_UPDATE_FREQUENCY = 30; // In ms

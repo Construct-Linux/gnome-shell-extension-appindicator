@@ -94,22 +94,6 @@ export class IconCache {
         this._lifetime.set(id, new Date().getTime() + LIFETIME_TIMESPAN * 1000);
     }
 
-    forceDestroy(id) {
-        const gicon = this._cache.has(id);
-        if (gicon) {
-            Object.keys(this._activeIcons).forEach(iconType =>
-                this.updateActive(iconType, gicon, false));
-            this._remove(id);
-            this._checkGC();
-        }
-    }
-
-    // marks all the icons as removable, if something doesn't claim them before
-    weakClear() {
-        this._activeIcons = Object.create(null);
-        this._checkGC();
-    }
-
     // removes everything from the cache
     clear() {
         this._activeIcons = Object.create(null);
