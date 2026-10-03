@@ -398,7 +398,11 @@ class IndicatorStatusIcon extends BaseStatusIcon {
         return this._clickCount;
     }
 
-    // FIXME: Add a double click gesture handle when we can depend on GNOME 49.
+    // Not a Clutter.ClickGesture: one recognizing a single click does so on
+    // the first release (mutter 51 clutter-click-gesture.c:70) and is not
+    // held back by a double-click gesture on the same actor (:102), so the
+    // menu would open before the double click activates. The double-click
+    // timer below is what keeps the menu closed until it is known.
     _maybeHandleDoubleClick(event) {
         if (this._indicator.supportsActivation === false)
             return Clutter.EVENT_PROPAGATE;
