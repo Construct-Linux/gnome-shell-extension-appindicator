@@ -1391,7 +1391,9 @@ class AppIndicatorsIconActor extends St.Icon {
             } else {
                 const currentSearchPath = this._iconTheme.get_search_path();
 
-                if (!currentSearchPath.includes(newSearchPath))
+                // set_search_path() drops every theme loaded so far
+                if (currentSearchPath.length !== 1 ||
+                    currentSearchPath[0] !== themePath)
                     this._iconTheme.set_search_path(newSearchPath);
             }
 
