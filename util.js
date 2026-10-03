@@ -20,7 +20,6 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 import {Logger} from './logger.js';
 import {BaseStatusIcon} from './indicatorStatusIcon.js';
@@ -33,36 +32,6 @@ export function indicatorId(service, busName, objectPath) {
     return `${busName}@${objectPath}`;
 }
 
-
-export class NameWatcher extends Signals.EventEmitter {
-    constructor(name) {
-        super();
-
-        this._watcherId = Gio.DBus.session.watch_name(name,
-            Gio.BusNameWatcherFlags.NONE, () => {
-                this._nameOnBus = true;
-                Logger.debug(`Name ${name} appeared`);
-                this.emit('changed');
-                this.emit('appeared');
-            }, () => {
-                this._nameOnBus = false;
-                Logger.debug(`Name ${name} vanished`);
-                this.emit('changed');
-                this.emit('vanished');
-            });
-    }
-
-    destroy() {
-        this.emit('destroy');
-
-        Gio.DBus.session.unwatch_name(this._watcherId);
-        delete this._watcherId;
-    }
-
-    get nameOnBus() {
-        return !!this._nameOnBus;
-    }
-}
 
 function connectSmart3A(src, signal, handler) {
     const id = src.connect(signal, handler);

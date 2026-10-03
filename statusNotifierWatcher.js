@@ -44,8 +44,7 @@ const DEFAULT_ITEM_OBJECT_PATH = '/StatusNotifierItem';
  * The StatusNotifierWatcher class implements the StatusNotifierWatcher dbus object
  */
 export class StatusNotifierWatcher {
-    constructor(extension, watchDog) {
-        this._watchDog = watchDog;
+    constructor(extension) {
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Interfaces.StatusNotifierWatcher, this);
         try {
             this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
@@ -75,7 +74,6 @@ export class StatusNotifierWatcher {
 
     _acquiredName() {
         this._everAcquiredName = true;
-        this._watchDog.nameAcquired = true;
     }
 
     _lostName() {
@@ -83,7 +81,6 @@ export class StatusNotifierWatcher {
             Util.Logger.debug(`Lost name${WATCHER_BUS_NAME}`);
         else
             Util.Logger.warn(`Failed to acquire ${WATCHER_BUS_NAME}`);
-        this._watchDog.nameAcquired = false;
     }
 
     async _registerItem(service, busName, objPath) {
@@ -316,9 +313,6 @@ export class StatusNotifierWatcher {
         if (this._isDestroyed)
             return;
 
-        // this doesn't do any sync operation and doesn't allow us to hook up
-        // the event of being finished which results in our unholy debounce hack
-        // (see extension.js)
         this._items.forEach(indicator => indicator.destroy());
         this._cancellable.cancel();
 

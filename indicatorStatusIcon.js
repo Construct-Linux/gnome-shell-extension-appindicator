@@ -60,6 +60,23 @@ function addIconToStatusArea(statusIcon) {
 
     Main.panel.addToStatusArea(indicatorId, statusIcon, 1,
         settings.get_string('tray-pos'));
+    setLocked(statusIcon, Main.sessionMode.isLocked);
+}
+
+// The panel stays on the lock screen and only hides its own indicators
+// (panel.js _hideIndicators()), so ours are hidden here, with their menus
+// closed, for as long as the session is locked.
+function setLocked(statusIcon, locked) {
+    if (locked)
+        statusIcon.menu.close();
+    statusIcon.container.visible = !locked;
+}
+
+export function syncLockedState() {
+    const {isLocked} = Main.sessionMode;
+    Object.values(Main.panel.statusArea)
+        .filter(i => i instanceof BaseStatusIcon)
+        .forEach(i => setLocked(i, isLocked));
 }
 
 export function getTrayIcons() {

@@ -2,6 +2,10 @@
     "shell-version": [
         "51"
     ],
+    "session-modes": [
+        "user",
+        "unlock-dialog"
+    ],
     "gettext-domain": "AppIndicatorExtension",
     "settings-schema": "org.gnome.shell.extensions.appindicator",
     "uuid": "appindicatorsupport@rgcjonas.gmail.com",
