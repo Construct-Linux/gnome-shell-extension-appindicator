@@ -43,6 +43,13 @@ if gjs.found()
         protocol: 'tap')
 endif
 
+node = find_program('node', required: false)
+if node.found()
+    test('status-notifier-watcher',
+        node,
+        args: ['--experimental-vm-modules', '--test', files('tests/testStatusNotifierWatcher.mjs')])
+endif
+
 summary({
     'Extension UUID': uuid,
     'Gettext domain': gettext_domain,

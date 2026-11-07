@@ -84,7 +84,9 @@ export class StatusNotifierWatcher {
     }
 
     async _registerItem(service, busName, objPath) {
-        const id = Util.indicatorId(service, busName, objPath);
+        const owner = await DBusUtils.getUniqueBusName(Gio.DBus.session,
+            busName, this._cancellable);
+        const id = Util.indicatorId(null, owner, objPath);
 
         if (this._items.has(id)) {
             Util.Logger.warn(`Item ${id} is already registered`);
@@ -93,18 +95,25 @@ export class StatusNotifierWatcher {
 
         Util.Logger.debug(`Registering StatusNotifierItem ${id}`);
 
+        const uniqueId = Util.indicatorId(service, busName, objPath);
+        for (const [key, item] of this._items) {
+            if (key.endsWith(`@${objPath}`) && item.uniqueId === uniqueId)
+                item.destroy();
+        }
+
+        let indicator;
         try {
-            const indicator = new AppIndicator.AppIndicator(service, busName, objPath);
+            indicator = new AppIndicator.AppIndicator(service, busName, objPath);
             const cancellable = this._cancellable;
             this._items.set(id, indicator);
-            indicator.connect('destroy', () => this._onIndicatorDestroyed(indicator));
+            indicator.connect('destroy', () => this._onIndicatorDestroyed(indicator, id));
 
             indicator.connect('name-owner-changed', async () => {
                 if (!indicator.hasNameOwner) {
                     try {
                         await new PromiseUtils.TimeoutPromise(500,
                             GLib.PRIORITY_DEFAULT, cancellable);
-                        if (this._items.has(id) && !indicator.hasNameOwner)
+                        if (this._items.get(id) === indicator && !indicator.hasNameOwner)
                             indicator.destroy();
                     } catch (e) {
                         if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
@@ -115,6 +124,8 @@ export class StatusNotifierWatcher {
 
             // if the desktop is not ready delay the icon creation and signal emissions
             await Util.waitForStartupCompletion(indicator.cancellable);
+            if (this._items.get(id) !== indicator)
+                return;
             const statusIcon = new IndicatorStatusIcon.IndicatorStatusIcon(indicator);
             IndicatorStatusIcon.addIconToPanel(statusIcon);
 
@@ -123,6 +134,8 @@ export class StatusNotifierWatcher {
             this._dbusImpl.emit_property_changed('RegisteredStatusNotifierItems',
                 GLib.Variant.new('as', this.RegisteredStatusNotifierItems));
         } catch (e) {
+            if (indicator && this._items.get(id) === indicator)
+                indicator.destroy();
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 logError(e);
             throw e;
@@ -130,7 +143,9 @@ export class StatusNotifierWatcher {
     }
 
     async _ensureItemRegistered(service, busName, objPath) {
-        const id = Util.indicatorId(service, busName, objPath);
+        const owner = await DBusUtils.getUniqueBusName(Gio.DBus.session,
+            busName, this._cancellable);
+        const id = Util.indicatorId(null, owner, objPath);
         const item = this._items.get(id);
 
         if (item) {
@@ -176,17 +191,11 @@ export class StatusNotifierWatcher {
 
             try {
                 const {services, name, path} = JSON.parse(textDecoder.decode(line));
-                const ids = [null, ...services].map(s => Util.indicatorId(s, name, path));
+                const id = Util.indicatorId(null, name, path);
 
-                if (ids.every(id => !this._items.has(id))) {
-                    const busService = services.find(s =>
+                if (!this._items.has(id)) {
+                    const service = services.find(s =>
                         s?.startsWith('org.kde.StatusNotifierItem')) ?? services[0];
-                    // An item on a non-default path registers itself by its
-                    // path, so register it the same way: with the bus service
-                    // its id would differ and the item would be added twice.
-                    const service = path === DEFAULT_ITEM_OBJECT_PATH
-                        ? busService : path;
-                    const id = Util.indicatorId(service, name, path);
                     Util.Logger.warn(`Using Brute-force mode for StatusNotifierItem ${id}`);
                     // eslint-disable-next-line no-await-in-loop
                     await this._registerItem(service, name, path);
@@ -272,9 +281,12 @@ export class StatusNotifierWatcher {
         }
     }
 
-    _onIndicatorDestroyed(indicator) {
-        const {uniqueId, service} = indicator;
-        this._items.delete(uniqueId);
+    _onIndicatorDestroyed(indicator, id) {
+        if (this._items.get(id) !== indicator)
+            return;
+
+        const {service} = indicator;
+        this._items.delete(id);
 
         try {
             this._dbusImpl.emit_signal('StatusNotifierItemUnregistered',
